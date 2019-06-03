@@ -86,6 +86,8 @@ namespace nCommentChecker
             string maiDatum = Convert.ToString(dateTime).Substring(0, 12).Replace(".", "-").Replace(" ", ""); //a mai dátum YYYY-MM-DD formátumra való alakítása
             string maiiiDatum = maiDatum + Convert.ToString(dateTime).Substring(13);
             var client = new WebClient();
+            ServicePointManager.Expect100Continue = true;
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             client.Headers.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36;)");
             client.Headers.Add(HttpRequestHeader.Cookie, cookie);
             //-a funkció innen
