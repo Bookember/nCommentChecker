@@ -17,15 +17,18 @@ namespace nCommentChecker
         static string glogalWebcim;
         static string globalDatum;
         static string cookie;
-        static int oldalakSzama = 1;
+        static int oldalakSzama =1;
         static int q = 1;
-        static Boolean listaNelkul;
+        static Boolean listaNelkul; //az en defaultom 0 de pcrolandé true
         static Boolean kommenteloKereses;
         static Boolean kommenteloSzerintListazando;
         static Boolean anonim = false;
         static string kommentelo;
         public static int listaSorSzam;
         static string profileid;
+        static string utolsoOldalLink;
+        static int osszesTorrentSzam =0;
+        static int aktualisTorrentSzam = 0;
 
         static void Main(string[] args)
         {
@@ -51,10 +54,10 @@ namespace nCommentChecker
                         globalDatum = datum + " 0:00:00";
                         break;
                     case "-l":
-                        listaNelkul = true;
+                        listaNelkul = true; // ez itt eredetileg = true de pcrolandehoz = false
                         break;
                     case "-h":
-                        Console.WriteLine("Tool created by Bookember.\n\nUsage:\n-w Looking for a keyword\n-u Looking for the uploader's name\n-d The input date (should be formated as YYYY-MM-DD)\n-l Makes the listing descending by the upload date of the torrents.\n-c It gives you the option, to search by commenters.\n-a Switch for anonim uploaders, it jumps to your uploaded torrents page so don't require any values.\n\nExamples:\n-w sajt -d 2019-02-09\n-u bookember -d 2018-12-12\n-u pcroland -c Bookember -l\n-a -d 2019-03-15\n\nLetters are case sensitive especially in the case of -c switch! Please don't use -u -a and the -w switch at the same time!\nYou will need a cookies.txt with your nCore cookies, placed next to this .exe!\nTo export your cookies, I recommend to use this add-on: https://chrome.google.com/webstore/detail/cookiestxt/njabckikapfpffapmjgojcnbfjonfjfg");
+                        Console.WriteLine("Tool created by Bookember.\n\nUsage:\n-w Looking for a keyword\n-u Looking for the uploader's name\n-d The input date (should be formated as YYYY-MM-DD)\n-l Makes the listing descending by the upload date of the torrents.\n-c It gives you the option, to search by commenters.\n-a If you are an anonim uploader and you would like to search to your own torrents, use this.\n\nExamples:\n-w sajt -d 2019-02-09\n-u bookember -d 2018-12-12\n-u pcroland -c Bookember -l\n-a -d 2019-03-15\n\nLetters are case sensitive especially in the case of -c switch! Please don't use -u -a and the -w switch at the same time!\nYou will need a cookies.txt with your nCore cookies, placed next to this .exe!\nTo export your cookies, I recommend to use this add-on: https://chrome.google.com/webstore/detail/cookiestxt/njabckikapfpffapmjgojcnbfjonfjfg \nv1.0.5");
                         Environment.Exit(1);
                         break;
                     case "-c":
@@ -66,8 +69,8 @@ namespace nCommentChecker
                         break;
                 }
             }
-            string dir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            string cookiePath = dir + @"\cookies.txt";
+            string dir =System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            string cookiePath = dir +  @"\cookies.txt";
             StreamReader cookieOlvas = new StreamReader(cookiePath);
             string sorer;
             string[] cookieTemp;
@@ -91,7 +94,7 @@ namespace nCommentChecker
             client.Headers.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36;)");
             client.Headers.Add(HttpRequestHeader.Cookie, cookie);
             //-a funkció innen
-            if (anonim == true)
+            if (anonim==true)
             {
                 client.DownloadFile("https://ncore.cc/profile.php", "ncc_temp3.txt");
                 StreamReader psw = new StreamReader("ncc_temp3.txt");
@@ -103,13 +106,36 @@ namespace nCommentChecker
                     {
                         string[] temp;
                         temp = psor.Split(' ');
-                        string profileidj = new String(temp[3].Where(Char.IsDigit).ToArray());
+                        string profileidj = new String (temp[3].Where(Char.IsDigit).ToArray());
                         profileid = profileidj;
                     }
                 }
                 psw.Close();
                 string selfUpWeb = "https://ncore.cc/profile.php?id=" + profileid + "&action=torrents";
                 client.DownloadFile(selfUpWeb, "ncc_temp4.txt");
+                Console.WriteLine("Beginning...");
+                Console.WriteLine();
+                StreamReader ssq = new StreamReader("ncc_temp4.txt");
+                string ssoq;
+                while (!ssq.EndOfStream)
+                {
+                    ssoq = ssq.ReadLine();
+                    if (!ssoq.Contains("var loading") && ssoq.Contains("torrents.php?action=") && ssoq.Contains("title="))
+                    {
+                        for (int a = 0; a < ssoq.Length; a++)
+                        {
+                            temp = ssoq.Split('"');
+                        }
+                        for (int b = 0; b < temp.Length; b++)
+                        {
+                            if (temp[b].Contains("torrents.php"))
+                            {
+                                osszesTorrentSzam = osszesTorrentSzam + 1 ;
+                            }
+                        }
+                    }
+                }
+                ssq.Close();
                 StreamReader ssr = new StreamReader("ncc_temp4.txt");
                 string ssor;
                 while (!ssr.EndOfStream)
@@ -133,15 +159,18 @@ namespace nCommentChecker
                     for (int c = 0; c < torrentWebcimLista.Count; c++) ///ITT TÖLTI LE Xszer ahány oldalszám van és ezt fixelni kell
                     {
                         //százalék
-
                         string webcim = "https://ncore.cc/" + torrentWebcimLista[c];
                         client.DownloadFile(webcim, "ncc_temp2.txt");
                         StreamReader srx = new StreamReader("ncc_temp2.txt");
+                        Boolean elsoTalaltTorrentNev = false;
                         while (!srx.EndOfStream)
                         {
-                            int si = 0;
                             string srxSor = srx.ReadLine();
-                            si++;
+                            int tempCurrentTorrentNumber = aktualisTorrentSzam;
+                            if (srxSor.Contains("db</div>"))
+                            {
+
+                            }
                             if (srxSor.Contains("torrent_reszletek_cim"))
                             {
                                 string[] anyadatMar;
@@ -150,6 +179,17 @@ namespace nCommentChecker
                                 if (torrentNeve.Contains("&amp;"))
                                 {
                                     torrentNeve = torrentNeve.Replace("&amp;", "&");
+
+                                }
+                                aktualisTorrentSzam++;
+                                //megpróbálom beimplementálni az aktuális szám kiírását és nevét
+                                if (elsoTalaltTorrentNev == false && tempCurrentTorrentNumber != aktualisTorrentSzam)
+                                {
+                                    Console.SetCursorPosition(0, Console.CursorTop - 1);
+                                    ClearCurrentConsoleLine();
+                                    Console.WriteLine("[" + aktualisTorrentSzam + "/" + osszesTorrentSzam + "] - " + torrentNeve);
+                                    elsoTalaltTorrentNev = true;
+                                    tempCurrentTorrentNumber++;
                                 }
                                 //39
                             }
@@ -158,7 +198,7 @@ namespace nCommentChecker
                                 //akkor ehhez a torrenthez hozzászólt az a bizonyos kommentelő, csak ezeket a torrenteket kell kilistázni
                                 kommenteloSzerintListazando = true;
                             }
-                            if (srxSor.Contains("&nbsp;201") && srxSor.Contains("hsz_pont"))
+                            if ((srxSor.Contains("&nbsp;201") || srxSor.Contains("&nbsp;202")) && srxSor.Contains("hsz_pont"))
                             {
                                 //2019. 02. 07. 0:00:00
                                 string kommentDatum = srxSor.Substring(srxSor.IndexOf(";", 0) + 1, 19);
@@ -194,10 +234,13 @@ namespace nCommentChecker
                                             {
                                                 if (listaNelkul == true)
                                                 {
+                                                    Console.SetCursorPosition(0, Console.CursorTop - 1);
+                                                    ClearCurrentConsoleLine();
                                                     tempAdat.listabaTorrentNeve = adat.listabaTorrentNeve;
                                                     tempAdat.listabaTorrentWebcimLista = adat.listabaTorrentWebcimLista;
                                                     tempAdat.listtabaKommentDatum = adat.listtabaKommentDatum;
                                                     Console.WriteLine(tempAdat.listabaTorrentWebcimLista + " | " + tempAdat.listtabaKommentDatum + " | " + tempAdat.listabaTorrentNeve);
+                                                    Console.WriteLine();
                                                 }
                                                 eredmenynekNagyonMegfeleloKilistazottAnyamkinja.Add(adat); //majd berakom a listába
                                             }
@@ -222,10 +265,13 @@ namespace nCommentChecker
                                         {
                                             if (listaNelkul == true)
                                             {
+                                                Console.SetCursorPosition(0, Console.CursorTop - 1);
+                                                ClearCurrentConsoleLine();
                                                 tempAdat.listabaTorrentNeve = adat.listabaTorrentNeve;
                                                 tempAdat.listabaTorrentWebcimLista = adat.listabaTorrentWebcimLista;
                                                 tempAdat.listtabaKommentDatum = adat.listtabaKommentDatum;
                                                 Console.WriteLine(tempAdat.listabaTorrentWebcimLista + " | " + tempAdat.listtabaKommentDatum + " | " + tempAdat.listabaTorrentNeve);
+                                                Console.WriteLine();
                                             }
                                             eredmenynekNagyonMegfeleloKilistazottAnyamkinja.Add(adat); //majd berakom a listába
                                         }
@@ -241,23 +287,46 @@ namespace nCommentChecker
             }
             else
             {
+                // most megnézem ki tudom-e szedni a torrentek számát
+
+                string sorLinkes;
+                client.DownloadFile(glogalWebcim.Substring(0, glogalWebcim.IndexOf('?')) + "?oldal=" + q + '&' + glogalWebcim.Substring(glogalWebcim.IndexOf('?') + 1), "ncc_temp.txt");
+                StreamReader srLinkes = new StreamReader("ncc_temp.txt");
+                while (!srLinkes.EndOfStream)
+                {
+                    sorLinkes = srLinkes.ReadLine();
+                    if (sorLinkes.Contains("<strong>Utolsó</strong>"))
+                    {
+                        utolsoOldalLink = "https://ncore.cc" + sorLinkes.Split('|').Last().Substring(10);
+                        utolsoOldalLink = utolsoOldalLink.Substring(0, utolsoOldalLink.LastIndexOf('"'));
+                        break;
+                    }
+                }
+                srLinkes.Close();
+                string sorLinkes2;
+                client.DownloadFile(utolsoOldalLink, "ncc_temp.txt"); 
+                StreamReader srLinkes2 = new StreamReader("ncc_temp.txt");
+                while (!srLinkes2.EndOfStream)
+                {
+                    sorLinkes2 = srLinkes2.ReadLine();
+                    if (sorLinkes2.Contains("<strong>Első</strong></a>"))
+                    {
+                        sorLinkes2 = sorLinkes2.Substring(sorLinkes2.LastIndexOf('-')+1);
+                        osszesTorrentSzam = Convert.ToInt32(sorLinkes2 = sorLinkes2.Substring(0, sorLinkes2.IndexOf('<')));
+                        break;
+                    }
+                }
+                srLinkes2.Close();
+                //IGEN, kiszedtem!
                 //IDE JÖN MAJD BE AZ EGÉSZ ELJÁRÁS AMI NEM -a
                 while (q <= oldalakSzama)
                 {
                     List<string> torrentWebcimLista = new List<string>();
                     client.DownloadFile(glogalWebcim.Substring(0, glogalWebcim.IndexOf('?')) + "?oldal=" + q + '&' + glogalWebcim.Substring(glogalWebcim.IndexOf('?') + 1), "ncc_temp.txt"); //első letöltés INNENTŐL KÉNE FOR CIKLUSBA TENNI, HOGY X LEGYEN .php?oldal=x
-                    if (listaNelkul != true)
+                    if (q==1)
                     {
-                        if (q == 1)
-                        {
-                            Console.WriteLine("Beginning...");
-                        }
-                        else
-                        {
-                            Console.SetCursorPosition(0, Console.CursorTop - 1);
-                            ClearCurrentConsoleLine();
-                            Console.WriteLine(Convert.ToDouble(100 * q / oldalakSzama) + "%");
-                        }
+                        Console.WriteLine("Beginning...");
+                        Console.WriteLine();
                     }
                     //Console.WriteLine(glogalWebcim.Substring(0, glogalWebcim.IndexOf('?')) + "?oldal=" + q + '&' + glogalWebcim.Substring(glogalWebcim.IndexOf('?') + 1));
                     string sor;
@@ -293,9 +362,8 @@ namespace nCommentChecker
                         StreamReader srx = new StreamReader("ncc_temp2.txt");
                         while (!srx.EndOfStream)
                         {
-                            int si = 0;
+                            int tempCurrentTorrentNumber = aktualisTorrentSzam;
                             string srxSor = srx.ReadLine();
-                            si++;
                             if (srxSor.Contains("torrent_reszletek_cim"))
                             {
                                 string[] anyadatMar;
@@ -305,15 +373,24 @@ namespace nCommentChecker
                                 {
                                     torrentNeve = torrentNeve.Replace("&amp;", "&");
                                 }
+                                aktualisTorrentSzam++;
                                 //ITT VAN AZ & JELES BUG
                                 //39
+                            }
+                            //megpróbálom beimplementálni az aktuális szám kiírását és nevét
+                            if (tempCurrentTorrentNumber!=aktualisTorrentSzam)
+                            {
+                                Console.SetCursorPosition(0, Console.CursorTop - 1);
+                                ClearCurrentConsoleLine();
+                                Console.WriteLine("[" + aktualisTorrentSzam + "/" + osszesTorrentSzam + "] - " + torrentNeve);
+                                tempCurrentTorrentNumber++;
                             }
                             if (kommenteloKereses == true && srxSor.Contains("Írta:") && srxSor.Contains(kommentelo))
                             {
                                 //akkor ehhez a torrenthez hozzászólt az a bizonyos kommentelő, csak ezeket a torrenteket kell kilistázni
                                 kommenteloSzerintListazando = true;
                             }
-                            if (srxSor.Contains("&nbsp;201") && srxSor.Contains("hsz_pont"))
+                            if ((srxSor.Contains("&nbsp;201") || srxSor.Contains("&nbsp;202")) && srxSor.Contains("hsz_pont"))
                             {
                                 //2019. 02. 07. 0:00:00
                                 string kommentDatum = srxSor.Substring(srxSor.IndexOf(";", 0) + 1, 19);
@@ -349,10 +426,13 @@ namespace nCommentChecker
                                             {
                                                 if (listaNelkul == true)
                                                 {
+                                                    Console.SetCursorPosition(0, Console.CursorTop - 1);
+                                                    ClearCurrentConsoleLine();
                                                     tempAdat.listabaTorrentNeve = adat.listabaTorrentNeve;
                                                     tempAdat.listabaTorrentWebcimLista = adat.listabaTorrentWebcimLista;
                                                     tempAdat.listtabaKommentDatum = adat.listtabaKommentDatum;
                                                     Console.WriteLine(tempAdat.listabaTorrentWebcimLista + " | " + tempAdat.listtabaKommentDatum + " | " + tempAdat.listabaTorrentNeve);
+                                                    Console.WriteLine();
                                                 }
                                                 eredmenynekNagyonMegfeleloKilistazottAnyamkinja.Add(adat); //majd berakom a listába
                                             }
@@ -377,14 +457,18 @@ namespace nCommentChecker
                                         {
                                             if (listaNelkul == true)
                                             {
+                                                Console.SetCursorPosition(0, Console.CursorTop - 1);
+                                                ClearCurrentConsoleLine();
                                                 tempAdat.listabaTorrentNeve = adat.listabaTorrentNeve;
                                                 tempAdat.listabaTorrentWebcimLista = adat.listabaTorrentWebcimLista;
                                                 tempAdat.listtabaKommentDatum = adat.listtabaKommentDatum;
                                                 Console.WriteLine(tempAdat.listabaTorrentWebcimLista + " | " + tempAdat.listtabaKommentDatum + " | " + tempAdat.listabaTorrentNeve);
+                                                Console.WriteLine();
                                             }
                                             eredmenynekNagyonMegfeleloKilistazottAnyamkinja.Add(adat); //majd berakom a listába
                                         }
                                     }
+                                    break;
                                 }
                             }
                         }
@@ -396,12 +480,15 @@ namespace nCommentChecker
                 }
             }
             rendezettUltimateLista = eredmenynekNagyonMegfeleloKilistazottAnyamkinja.OrderByDescending(x => x.listtabaKommentDatum).ToList();
-            if (listaNelkul == true)
+            if (listaNelkul==true)
             {
-
+                Console.SetCursorPosition(0, Console.CursorTop - 1);
+                ClearCurrentConsoleLine();
             }
             else
             {
+                Console.SetCursorPosition(0, Console.CursorTop - 1);
+                ClearCurrentConsoleLine();
                 for (int i = 0; i < rendezettUltimateLista.Count; i++)
                 {
                     Console.WriteLine(rendezettUltimateLista[i].listabaTorrentWebcimLista + " | " + rendezettUltimateLista[i].listtabaKommentDatum + " | " + rendezettUltimateLista[i].listabaTorrentNeve);
